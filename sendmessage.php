@@ -21,8 +21,7 @@ curl_setopt_array($curl, array(
     'Authorization: 4KY7WmJqDweDDLsNRFep' //change TOKEN to your actual token
   ),
 ));
-}
-Kirimfonnte($token, $data);
+
 $response = curl_exec($curl);
 if (curl_errno($curl)) {
   $error_msg = curl_error($curl);
@@ -33,3 +32,5 @@ if (isset($error_msg)) {
  echo $error_msg;
 }
 echo $response;
+}
+Kirimfonnte($token, $data);
