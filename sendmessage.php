@@ -33,4 +33,18 @@ if (isset($error_msg)) {
 }
 echo $response;
 }
-Kirimfonnte($token, $data);
+// TANGKAP REQUEST DARI INDEX.HTML
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Ambil data yang dikirim oleh JavaScript Fetch
+    $pesan = isset($_POST['message']) ? $_POST['message'] : '';
+    $nomor = isset($_POST['target']) ? $_POST['target'] : '';
+
+    if (!empty($pesan) && !empty($nomor)) {
+        // Panggil fungsi Anda dengan parameter ($data, $telp)
+        $hasil = Kirimfonnte($pesan, $nomor);
+        echo $hasil; 
+    } else {
+        echo json_encode(['status' => false, 'reason' => 'Data tidak lengkap']);
+    }
+}
+?>
