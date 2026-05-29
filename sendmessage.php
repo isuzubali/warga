@@ -13,10 +13,10 @@ curl_setopt_array($curl, array(
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
         CURLOPT_CUSTOMREQUEST => 'POST',
-        CURLOPT_POSTFIELDS => array(
+        CURLOPT_POSTFIELDS => http_build_query(array(
             'target' => $telp,
             'message' => $data,
-        ),
+        )),
         CURLOPT_HTTPHEADER => array(
             'Authorization: ' . $token
         ),));
