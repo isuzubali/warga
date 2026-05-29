@@ -164,56 +164,50 @@ btnkirim.className = "w-full mt-2 bg-gradient-to-r from-red-700 to-amber-700 tex
             if(formattedPhone.startsWith("0")) {
                 formattedPhone = "62" + formattedPhone.slice(1);
             }
-// Siapkan data untuk dikirim ke sendmessage.php menggunakan FormData
-    const formData = new FormData();
-    formData.append('target', formattedPhone);
-    formData.append('message', `[WARGA PANDE] Kode OTP pendaftaran Anda adalah: ${generatedOTP}. Jaga kerahasiaan kode ini.`);
+// Ganti dengan token Fonnte asli Anda (Jangan hapus tanda kutipnya)
+    const TOKEN_FONNTE = "4KY7WmJqDweDDLsNRFep"; 
+
+    // Menggunakan URLSearchParams agar format data sesuai dengan x-www-form-urlencoded (kebutuhan Fonnte)
+    const dataKirim = new URLSearchParams();
+    dataKirim.append('target', formattedPhone);
+    dataKirim.append('message', `[WARGA PANDE] Kode OTP pendaftaran Anda adalah: ${generatedOTP}. Jaga kerahasiaan kode ini.`);
+    dataKirim.append('countryCode', '62');
 
     try {
-        // Memanggil file sendmessage.php di server Anda
-        const response = await fetch('sendmessage.php', {
+        // Langsung menembak ke API Fonnte dari JavaScript
+        const response = await fetch('https://api.fonnte.com/send', {
             method: 'POST',
-            body: formData // Mengirim data dalam bentuk POST Form
+            headers: {
+                'Authorization': TOKEN_FONNTE,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: dataKirim
         });
 
-        // Mengambil respon teks dari PHP (karena sendmessage.php melakukan echo $response langsung dari Fonnte)
-        const textResult = await response.text();
-        console.log("Respon Server:", textResult);
+        const jsonResult = await response.json();
+        console.log("Respon Fonnte:", jsonResult);
 
-        // Mencoba membaca apakah respon berupa JSON sukses dari Fonnte
-        let isSuccess = false;
-        try {
-            const jsonResult = JSON.parse(textResult);
-            if (jsonResult.status === true || jsonResult.status === "true") {
-                isSuccess = true;
-            }
-        } catch (e) {
-            // Jika sendmessage.php mengembalikan string sukses/berisi info status
-            if (textResult.includes('"status":true') || response.ok) {
-                isSuccess = true;
-            }
-        }
-
-        if (isSuccess) {
+        // Validasi status respon dari Fonnte
+        if (jsonResult.status === true || jsonResult.status === "true") {
             otpStatus.className = "text-xs mt-1 text-green-600 font-medium";
             otpStatus.innerText = "OTP berhasil dikirim ke WhatsApp!";
             document.getElementById('otpContainer').classList.remove('hidden');
             
-            // Aktifkan tombol daftar
+            // Aktifkan tombol DAFTAR SEKARANG
             btnkirim.disabled = false;
             btnkirim.className = "w-full mt-2 bg-gradient-to-r from-red-700 to-amber-700 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:from-red-800 hover:to-amber-800 transition transform active:scale-95 cursor-pointer";
         } else {
-            throw new Error("Gagal mengirim lewat Fonnte (Cek log server)");
+            throw new Error(jsonResult.reason || "Ditolak oleh Fonnte");
         }
 
     } catch (error) {
-        console.error(error);
-        // Fallback jika server error / token di php belum diisi
+        console.error("Detail Error:", error);
+        // Fallback jika kuota Fonnte habis atau token tidak valid
         otpStatus.className = "text-xs mt-1 text-amber-600 font-medium";
-        otpStatus.innerText = `[Simulasi/Gagal] Gagal kontak sendmessage.php. Gunakan OTP ini untuk tes: ${generatedOTP}`;
+        otpStatus.innerText = `Gagal mengirim OTP via Fonnte. Gunakan OTP simulasi ini: ${generatedOTP}`;
         document.getElementById('otpContainer').classList.remove('hidden');
         
-        // Tetap buka tombol untuk kebutuhan testing jika backend gagal
+        // Tetap izinkan tombol aktif untuk keperluan testing/bypass
         btnkirim.disabled = false;
         btnkirim.className = "w-full mt-2 bg-gradient-to-r from-red-700 to-amber-700 text-white font-bold py-3 px-4 rounded-lg shadow-md";
     } finally {
@@ -221,7 +215,6 @@ btnkirim.className = "w-full mt-2 bg-gradient-to-r from-red-700 to-amber-700 tex
         btnOtp.innerText = "Kirim Ulang";
     }
 }
-
         // --- 2. LOGIKA SUBMIT FORM (SIMPAN DATA & VALIDASI) ---
         document.getElementById('registrationForm').addEventListener('submit', async function(e) {
             e.preventDefault();
