@@ -164,43 +164,63 @@ btnkirim.className = "w-full mt-2 bg-gradient-to-r from-red-700 to-amber-700 tex
             if(formattedPhone.startsWith("0")) {
                 formattedPhone = "62" + formattedPhone.slice(1);
             }
+// Siapkan data untuk dikirim ke sendmessage.php menggunakan FormData
+    const formData = new FormData();
+    formData.append('target', formattedPhone);
+    formData.append('message', `[WARGA PANDE] Kode OTP pendaftaran Anda adalah: ${generatedOTP}. Jaga kerahasiaan kode ini.`);
 
-            try {
-                // Integrasi API Fonnte
-                const response = await fetch('https://api.fonnte.com/send', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': FONNTE_TOKEN
-                    },
-                    body: new URLSearchParams({
-                        'target': formattedPhone,
-                        'message': `[WARGA PANDE] Kode OTP pendaftaran Anda adalah: ${generatedOTP}. Jaga kerahasiaan kode ini.`
-                    })
-                });
+    try {
+        // Memanggil file sendmessage.php di server Anda
+        const response = await fetch('sendmessage.php', {
+            method: 'POST',
+            body: formData // Mengirim data dalam bentuk POST Form
+        });
 
-                const result = await response.json();
+        // Mengambil respon teks dari PHP (karena sendmessage.php melakukan echo $response langsung dari Fonnte)
+        const textResult = await response.text();
+        console.log("Respon Server:", textResult);
 
-                if (result.status || response.ok) {
-                    otpStatus.className = "text-xs mt-1 text-green-600 font-medium";
-                    otpStatus.innerText = "OTP berhasil dikirim ke WhatsApp!";
-                    document.getElementById('otpContainer').classList.remove('hidden');
-                    console.log("OTP Berhasil (Simulasi Mode):", generatedOTP); // Untuk testing mandiri
-btnkirim.disabled = false;
-btnkirim.className = "w-full mt-2 bg-gradient-to-r from-red-700 to-amber-700 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:from-red-800 hover:to-amber-800 transition transform active:scale-95 cursor-pointer";
-                } else {
-                    throw new Error(result.reason || "Gagal mengirim lewat Fonnte");
-                }
-            } catch (error) {
-                console.error(error);
-                // Fallback / Alert jika token Fonnte belum valid/diisi
-                otpStatus.className = "text-xs mt-1 text-amber-600 font-medium";
-                otpStatus.innerText = `[Simulasi] Gagal kontak API Fonnte. Gunakan OTP ini untuk tes: ${generatedOTP}`;
-                document.getElementById('otpContainer').classList.remove('hidden');
-            } finally {
-                btnOtp.disabled = false;
-                btnOtp.innerText = "Kirim Ulang";
+        // Mencoba membaca apakah respon berupa JSON sukses dari Fonnte
+        let isSuccess = false;
+        try {
+            const jsonResult = JSON.parse(textResult);
+            if (jsonResult.status === true || jsonResult.status === "true") {
+                isSuccess = true;
+            }
+        } catch (e) {
+            // Jika sendmessage.php mengembalikan string sukses/berisi info status
+            if (textResult.includes('"status":true') || response.ok) {
+                isSuccess = true;
             }
         }
+
+        if (isSuccess) {
+            otpStatus.className = "text-xs mt-1 text-green-600 font-medium";
+            otpStatus.innerText = "OTP berhasil dikirim ke WhatsApp!";
+            document.getElementById('otpContainer').classList.remove('hidden');
+            
+            // Aktifkan tombol daftar
+            btnkirim.disabled = false;
+            btnkirim.className = "w-full mt-2 bg-gradient-to-r from-red-700 to-amber-700 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:from-red-800 hover:to-amber-800 transition transform active:scale-95 cursor-pointer";
+        } else {
+            throw new Error("Gagal mengirim lewat Fonnte (Cek log server)");
+        }
+
+    } catch (error) {
+        console.error(error);
+        // Fallback jika server error / token di php belum diisi
+        otpStatus.className = "text-xs mt-1 text-amber-600 font-medium";
+        otpStatus.innerText = `[Simulasi/Gagal] Gagal kontak sendmessage.php. Gunakan OTP ini untuk tes: ${generatedOTP}`;
+        document.getElementById('otpContainer').classList.remove('hidden');
+        
+        // Tetap buka tombol untuk kebutuhan testing jika backend gagal
+        btnkirim.disabled = false;
+        btnkirim.className = "w-full mt-2 bg-gradient-to-r from-red-700 to-amber-700 text-white font-bold py-3 px-4 rounded-lg shadow-md";
+    } finally {
+        btnOtp.disabled = false;
+        btnOtp.innerText = "Kirim Ulang";
+    }
+}
 
         // --- 2. LOGIKA SUBMIT FORM (SIMPAN DATA & VALIDASI) ---
         document.getElementById('registrationForm').addEventListener('submit', async function(e) {
