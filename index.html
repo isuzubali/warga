@@ -91,6 +91,7 @@
 
     <script>
 const btnkirim = document.getElementById('btnDaftar');
+        const nama = document.getElementById('nama');
 btnkirim.disabled = true;
 btnkirim.className = "w-full mt-2 bg-gradient-to-r from-red-700 to-amber-700 text-white font-bold py-3 px-4 rounded-lg shadow-md opacity-50 cursor-not-allowed dynamic-none";
         // Data Kecamatan berdasarkan Kabupaten (Contoh beberapa wilayah di Bali)
@@ -170,7 +171,7 @@ btnkirim.className = "w-full mt-2 bg-gradient-to-r from-red-700 to-amber-700 tex
     // Menggunakan URLSearchParams agar format data sesuai dengan x-www-form-urlencoded (kebutuhan Fonnte)
     const dataKirim = new URLSearchParams();
     dataKirim.append('target', formattedPhone);
-    dataKirim.append('message', `[WARGA PANDE] Kode OTP pendaftaran Anda adalah: ${generatedOTP}. Jaga kerahasiaan kode ini.`);
+    dataKirim.append('message', `[Selamat datang ${nama}] Kode OTP pendaftaran Anda adalah: ${generatedOTP}. Jaga kerahasiaan kode ini.`);
     dataKirim.append('countryCode', '62');
 
     try {
