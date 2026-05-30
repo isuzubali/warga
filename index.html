@@ -133,88 +133,119 @@ btnkirim.className = "w-full mt-2 bg-gradient-to-r from-red-700 to-amber-700 tex
                 kecamatanSelect.innerHTML = '<option value="">-- Pilih Kabupaten Terlebih Dahulu --</option>';
             }
         });
-        // --- KONFIGURASI SUPABASE & FONNTE ---
-        const FONNTE_TOKEN = "PINDAHKAN_TOKEN_FONNTE_DISINI"; 
-        const SUPABASE_URL = "https://URL_SUPABASE_ANDA.supabase.co";
-        const SUPABASE_KEY = "KEY_ANON_SUPABASE_ANDA";
+        
+        // // --- KONFIGURASI JALUR AMBIL DATA ---
+// Tempel URL Web App dari Google Apps Script Anda di sini
+const GOOGLE_SCRIPT_URL = "PASTE_URL_WEB_APP_APPS_SCRIPT_DISINI"; 
 
-        let generatedOTP = null;
-        let isOtpVerified = false;
+let TWILIO_ACCOUNT_SID = ""; 
+let TWILIO_AUTH_TOKEN = "";
+const TWILIO_WHATSAPP_NUMBER = "+14155238886"; // Tetap sama
 
-        // --- 1. FUNGSI KIRIM OTP VIA FONNTE ---
-        async function sendOTP() {
-            const noTelp = document.getElementById('notelp').value;
-            const btnOtp = document.getElementById('btnOtp');
-            const otpStatus = document.getElementById('otpStatus');
+let generatedOTP = null;
 
-            if (!noTelp) {
-                alert("Silakan masukkan nomor telepon terlebih dahulu!");
-                return;
-            }
+// Fungsi otomatis untuk mengambil kredensial dari Google Sheets saat halaman web dibuka
+async function muatKredensialDariSheets() {
+    try {
+        const response = await fetch(GOOGLE_SCRIPT_URL);
+        if (!response.ok) throw new Error("Gagal mengambil data dari Google Sheets");
+        
+        const data = await response.json();
+        
+        // Simpan data dari sheet ke variabel global kode kita
+        TWILIO_ACCOUNT_SID = data.account_sid;
+        TWILIO_AUTH_TOKEN = data.auth_token;
+        console.log("Kredensial Twilio berhasil dimuat dari Sheets secara real-time.");
+    } catch (error) {
+        console.error("Gagal memuat kredensial:", error);
+    }
+}
 
-            // Generate 6 Digit OTP acak
-            generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
-            
-            // Mengubah teks button jadi loading
-            btnOtp.disabled = true;
-            btnOtp.innerText = "Mengirim...";
-            otpStatus.innerText = "Sedang mengirim kode OTP...";
+// Jalankan fungsi pengambilan data saat halaman web selesai dimuat sepenuhnya
+window.onload = function() {
+    // Ambil kredensial dari sheets
+    muatKredensialDariSheets();
 
-            // Format nomor agar sesuai standar (bisa disesuaikan jika Fonnte mewajibkan 62)
-            let formattedPhone = noTelp;
-            if(formattedPhone.startsWith("0")) {
-                formattedPhone = "62" + formattedPhone.slice(1);
-            }
-// Ganti dengan token Fonnte asli Anda (Jangan hapus tanda kutipnya)
-    const TOKEN_FONNTE = "4KY7WmJqDweDDLsNRFep"; 
+    // Logika auto-login lokal Anda yang sudah ada sebelumnya tetap ditaruh di sini
+    const savedSession = localStorage.getItem('wargaPandeSession');
+    if (savedSession) {
+        renderDashboard(JSON.parse(savedSession));
+    }
+};
 
-    // Menggunakan URLSearchParams agar format data sesuai dengan x-www-form-urlencoded (kebutuhan Fonnte)
+// --- FUNGSI KIRIM OTP VIA TWILIO (Sama seperti sebelumnya, hanya saja variabelnya otomatis terisi) ---
+async function sendOTP() {
+    const noTelp = document.getElementById('notelp').value;
+    const btnOtp = document.getElementById('btnOtp');
+    const otpStatus = document.getElementById('otpStatus');
+    const namaUser = nama.value || "Semeton Pande";
+
+    // Validasi jika data sheets belum selesai di-load saat tombol ditekan
+    if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
+        alert("Sistem sedang menyiapkan koneksi aman, silakan tunggu 2 detik lalu coba lagi.");
+        return;
+    }
+
+    if (!noTelp) {
+        alert("Silakan masukkan nomor telepon terlebih dahulu!");
+        return;
+    }
+
+    generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    btnOtp.disabled = true;
+    btnOtp.innerText = "Mengirim...";
+    otpStatus.innerText = "Sedang mengirim kode OTP via Twilio...";
+
+    let formattedPhone = noTelp.trim();
+    if(formattedPhone.startsWith("0")) {
+        formattedPhone = "+62" + formattedPhone.slice(1);
+    } else if(!formattedPhone.startsWith("+")) {
+        formattedPhone = "+" + formattedPhone;
+    }
+
     const dataKirim = new URLSearchParams();
-    dataKirim.append('target', formattedPhone);
-    dataKirim.append('message', `[Selamat datang ${nama}] Kode OTP pendaftaran Anda adalah: ${generatedOTP}. Jaga kerahasiaan kode ini.`);
-    dataKirim.append('countryCode', '62');
+    dataKirim.append('To', `whatsapp:${formattedPhone}`);
+    dataKirim.append('From', `whatsapp:${TWILIO_WHATSAPP_NUMBER}`);
+    dataKirim.append('Body', `[Selamat datang ${namaUser}] Kode OTP pendaftaran Anda adalah: ${generatedOTP}. Jaga kerahasiaan kode ini.`);
 
     try {
-        // Langsung menembak ke API Fonnte dari JavaScript
-        const response = await fetch('https://api.fonnte.com/send', {
+        const credentialBase64 = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
+
+        const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`, {
             method: 'POST',
             headers: {
-                'Authorization': TOKEN_FONNTE,
+                'Authorization': `Basic ${credentialBase64}`,
                 'Content-Type': 'application/x-www-form-urlencoded'
             },
             body: dataKirim
         });
 
         const jsonResult = await response.json();
-        console.log("Respon Fonnte:", jsonResult);
 
-        // Validasi status respon dari Fonnte
-        if (jsonResult.status === true || jsonResult.status === "true") {
+        if (response.ok) {
             otpStatus.className = "text-xs mt-1 text-green-600 font-medium";
-            otpStatus.innerText = "OTP berhasil dikirim ke WhatsApp!";
+            otpStatus.innerText = "OTP berhasil dikirim ke WhatsApp via Twilio!";
             document.getElementById('otpContainer').classList.remove('hidden');
             
-            // Aktifkan tombol DAFTAR SEKARANG
             btnkirim.disabled = false;
             btnkirim.className = "w-full mt-2 bg-gradient-to-r from-red-700 to-amber-700 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:from-red-800 hover:to-amber-800 transition transform active:scale-95 cursor-pointer";
         } else {
-            throw new Error(jsonResult.reason || "Ditolak oleh Fonnte");
+            throw new Error(jsonResult.message || "Ditolak oleh Twilio");
         }
-
     } catch (error) {
         console.error("Detail Error:", error);
-        // Fallback jika kuota Fonnte habis atau token tidak valid
         otpStatus.className = "text-xs mt-1 text-amber-600 font-medium";
-        otpStatus.innerText = `Gagal mengirim OTP via Fonnte. Gunakan OTP simulasi ini: ${generatedOTP}`;
+        otpStatus.innerText = `Gagal mengirim via Twilio. Simulasi OTP Anda: ${generatedOTP}`;
         document.getElementById('otpContainer').classList.remove('hidden');
         
-        // Tetap izinkan tombol aktif untuk keperluan testing/bypass
         btnkirim.disabled = false;
         btnkirim.className = "w-full mt-2 bg-gradient-to-r from-red-700 to-amber-700 text-white font-bold py-3 px-4 rounded-lg shadow-md";
     } finally {
         btnOtp.disabled = false;
         btnOtp.innerText = "Kirim Ulang";
     }
+                                                                               }
 }
         // --- 2. LOGIKA SUBMIT FORM (SIMPAN DATA & VALIDASI) ---
         document.getElementById('registrationForm').addEventListener('submit', async function(e) {
