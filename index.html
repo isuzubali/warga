@@ -135,31 +135,18 @@
         // --- KONFIGURASI JALUR AMBIL DATA ---
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby6jl4kaMN9ptunSoByzws8XCGyflwaTMvmKUMhjVV_BvS7-OFD9EeL-6k3kTDTAmK9Uw/exec"; 
 
-        let TWILIO_ACCOUNT_SID = ""; 
-        let TWILIO_AUTH_TOKEN = "";
+        let TWILIO_ACCOUNT_SID = "AC66a9f4de5796a1d66013a22b581633bd"; 
+        let TWILIO_AUTH_TOKEN = "5db0c320590cf17e4146cdc35e16a86b";
         const TWILIO_WHATSAPP_NUMBER = "+14155238886"; 
 
         let generatedOTP = null;
 
         // Fungsi otomatis untuk mengambil kredensial dari Google Sheets
-        async function muatKredensialDariSheets() {
-            try {
-                const response = await fetch(GOOGLE_SCRIPT_URL);
-                if (!response.ok) throw new Error("Gagal mengambil data dari Google Sheets");
-                
-                const data = await response.json();
-                
-                TWILIO_ACCOUNT_SID = data.account_sid;
-                TWILIO_AUTH_TOKEN = data.auth_token;
-                console.log("Kredensial Twilio berhasil dimuat dari Sheets secara real-time.");
-            } catch (error) {
-                console.error("Gagal memuat kredensial:", error);
-            }
-        }
+        
 
         // Jalankan fungsi saat halaman selesai dimuat (Gabungan fungsi tunggal)
         window.onload = function() {
-            muatKredensialDariSheets();
+          //  muatKredensialDariSheets();
 
             const savedSession = localStorage.getItem('wargaPandeSession');
             if (savedSession) {
